@@ -1,0 +1,76 @@
+# PSA v2 — Posture Sequence Analysis (Single-Agent)
+
+## Purpose
+
+PSA v2 goes beyond metric deviation to classify the **posture** of a model's response — the behavioral stance it is taking in relation to the input. Where ACT measures *how much* the model has deviated, PSA v2 measures *what kind* of deviation it is.
+
+PSA v2 operates on single-agent, turn-by-turn interactions. Each response is classified against five adversarial posture dimensions.
+
+---
+
+## The Five Classifiers (C0–C4)
+
+Each classifier is a specialized detector for a specific category of behavioral pattern. They operate independently and their outputs are combined into a posture profile for each turn.
+
+### C0 — Adversarial Stress Detection
+
+**What it detects:** Is the model under adversarial input pressure, and is that pressure measurably affecting its posture?
+
+C0 measures the congruence between the model's stated posture (what it claims to be doing) and its actual behavioral output (what the metrics show). Incongruence — where the model asserts one thing but behaves differently — is a primary signal of adversarial stress.
+
+This is called **Posture-Action Incongruence (PAI)** at the single-agent level: the model says it is refusing, but its response structure shows compliance signals; or it claims confidence, but its hedging metrics are elevated.
+
+### C1 — Sycophantic Drift
+
+**What it detects:** Is the model shifting its responses to match perceived user preferences rather than maintaining consistent positions?
+
+Sycophancy is particularly dangerous because it is often gradual and superficially looks like helpful adaptation. C1 tracks:
+- Whether the model's expressed positions shift in the direction of prior user statements
+- Whether agreement and validation language increases over turns
+- Whether the model is maintaining or abandoning positions it held earlier in the session
+
+### C2 — Hallucination Indicators
+
+**What it detects:** Linguistic and structural markers associated with confabulated or unsupported claims.
+
+C2 does not verify factual claims — it detects the *behavioral patterns* associated with hallucination: overconfident assertion without hedging, specific-sounding details in domains where the model has shown uncertainty, and structural patterns that distinguish generated-from-memory from acknowledged-inference responses.
+
+### C3 — Persuasion Detection
+
+**What it detects:** Is the model attempting to influence the user's beliefs or actions through persuasive rather than informational language?
+
+C3 distinguishes between responses that inform and responses that persuade. Elevated persuasion signals may indicate that the model has been manipulated into advocating for a position, or that an adversarial prompt has shifted its role from assistant to advocate.
+
+### C4 — Input Pressure Effects
+
+**What it detects:** Is the model's current response measurably shaped by the structural or rhetorical properties of the input, beyond what the content would warrant?
+
+C4 measures how much the model's response mirrors or responds to the *form* of the input (not just the content): escalating input pressure producing escalating responses, authoritative framing producing deferential responses, emotional framing producing emotionally resonant responses that may override the model's default behavioral constraints.
+
+---
+
+## Posture Profile
+
+The output of PSA v2 for each turn is a **posture profile**: a set of classifier scores across C0–C4, combined with the ACT metric vector to produce a comprehensive behavioral characterization of the turn.
+
+The posture profile captures not just that a turn is anomalous (ACT's job) but *in what way* it is anomalous — which adversarial pattern best characterizes the deviation.
+
+---
+
+## Inter-Turn Analysis
+
+PSA v2 also tracks patterns across turns, not just within individual turns:
+
+- **Posture trajectory** — how classifier scores evolve over the session
+- **Drift direction** — which posture dimensions are trending and in which direction
+- **Congruence history** — whether PAI is a one-off anomaly or a recurring pattern
+
+This inter-turn view is what distinguishes genuine sycophantic drift (a directional trend over many turns) from a single deferential response (a one-time event with no trajectory).
+
+---
+
+## Relationship to ACT
+
+PSA v2 consumes ACT's metric vector as input and adds semantic classification on top. It also incorporates deeper semantic analysis (sentence-level embedding comparisons, perplexity estimation) that subsumes ACT's Level 3 and Level 4 metrics.
+
+ACT tells you the model has deviated. PSA v2 tells you what it's doing.
