@@ -74,3 +74,20 @@ This inter-turn view is what distinguishes genuine sycophantic drift (a directio
 PSA v2 consumes ACT's metric vector as input and adds semantic classification on top. It also incorporates deeper semantic analysis (sentence-level embedding comparisons, perplexity estimation) that subsumes ACT's Level 3 and Level 4 metrics.
 
 ACT tells you the model has deviated. PSA v2 tells you what it's doing.
+
+---
+
+## Extension: DRM — Dyadic Risk Monitor
+
+PSA v2 classifies the *AI's output*. The **DRM** pipeline extends this by also analysing the *human turn* and measuring whether the AI responded adequately to the risk level it carried.
+
+DRM is a four-layer pipeline that runs *above* PSA v2 and consumes PSA v2 output as one of its inputs:
+
+1. **IRS** — scores the human turn for crisis signals (suicidality, dissociation, grandiosity, urgency)
+2. **RAS** — scores the AI response for adequacy (acknowledgment, redirection, boundary, grounding)
+3. **RAG** — computes the gap: `RAG = IRS_composite − RAS_composite`
+4. **DRM** — integrates IRS + RAS + RAG + PSA v2 BHS + user ACT trajectory into a single alert
+
+The DRM alert levels are: green / yellow / orange / red / critical. A **critical** alert triggers when direct suicidal/crisis language is met with an inadequate AI response — the exact failure mode that PSA v2 alone cannot catch.
+
+See [`drm.md`](drm.md) for the full specification.
