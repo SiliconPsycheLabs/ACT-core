@@ -42,8 +42,9 @@ For each analyzed response, ACT:
 2. **Normalizes to Z-scores** relative to the user's or session's established baseline
 3. **Computes the composite score** from the normalized vector
 4. **Computes the Signal Consensus Index** to measure cross-metric agreement
-5. **Assigns an alert level** (GREEN / YELLOW / RED)
-6. **Hands off to SIGTRACK** for storage and signature matching
+5. **Updates the BCS Slope** from the rolling Z-score sequence
+6. **Assigns an alert level** (GREEN / YELLOW / RED)
+7. **Hands off to SIGTRACK** for storage and signature matching
 
 This cycle runs on every turn, in real time.
 
@@ -72,6 +73,7 @@ For each analyzed turn, ACT produces:
 | **Z-score vector** | Normalized deviation from baseline for each metric |
 | **ACT Composite** | Single scalar summarizing overall behavioral deviation |
 | **SCI** | Signal Consensus Index — how many metrics agree on the deviation direction |
+| **BCS Slope** | Bayesian Convergence Speed — rate of posterior convergence over the rolling session window (`converging` / `stable` / `diverging` / `insufficient_data`) |
 | **Alert level** | GREEN / YELLOW / RED |
 
-These outputs are passed to SIGTRACK for storage and (optionally) to PSA v2 for posture classification.
+These outputs are passed to SIGTRACK for storage and (optionally) to PSA v2 for posture classification. See [`bcs-slope.md`](../concepts/bcs-slope.md) for the full BCS Slope specification.

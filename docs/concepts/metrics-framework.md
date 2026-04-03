@@ -65,14 +65,17 @@ Perplexity-based metrics require a reference language model to estimate the surp
 
 ## Level 5 — Meta
 
-**What it captures:** Cross-metric aggregations that summarize overall behavioral state.
+**What it captures:** Cross-metric aggregations that summarize overall behavioral state, both at the per-turn level and across the temporal arc of a session.
 
 Level 5 is computed from the outputs of all other active levels. It produces:
 
 - **ACT Composite Score** — a single scalar representing the overall degree of deviation from the established baseline across all active metrics
 - **Signal Consensus Index (SCI)** — a measure of how many independent metrics agree on the direction of the current deviation
+- **BCS Slope (Bayesian Convergence Speed)** — the rate at which the system's probabilistic estimate of the model's behavioral regime converges or diverges over a rolling session window
 
-The composite score is the primary monitoring signal: it rises when multiple metrics shift simultaneously, and remains low when deviations are isolated or random. SCI distinguishes meaningful behavioral shifts (many metrics in agreement) from noise (one metric fluctuating while others are stable).
+The composite score is the primary per-turn monitoring signal: it rises when multiple metrics shift simultaneously, and remains low when deviations are isolated or random. SCI distinguishes meaningful behavioral shifts (many metrics in agreement) from noise (one metric fluctuating while others are stable). BCS Slope adds the temporal dimension: it tracks whether the model's behavior is becoming more predictable over the course of a session or whether uncertainty about its operating regime is growing.
+
+A negative BCS Slope sustained over many turns is a session-level risk indicator independent of whether any individual turn has triggered a per-turn alert. See [`bcs-slope.md`](bcs-slope.md) for the full specification.
 
 ---
 

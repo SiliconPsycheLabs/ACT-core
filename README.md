@@ -15,6 +15,7 @@ act-core/
     ├── overview.md                   # Platform overview — the problem and the solution
     ├── concepts/
     │   ├── metrics-framework.md      # Conceptual metric levels (L0–L5)
+    │   ├── bcs-slope.md              # BCS Slope — Bayesian Convergence Speed
     │   ├── regime-shifts.md          # The five regime shift types
     │   └── alert-levels.md           # GREEN / YELLOW / RED alert system
     └── components/
