@@ -91,3 +91,94 @@ DRM is a four-layer pipeline that runs *above* PSA v2 and consumes PSA v2 output
 The DRM alert levels are: green / yellow / orange / red / critical. A **critical** alert triggers when direct suicidal/crisis language is met with an inadequate AI response — the exact failure mode that PSA v2 alone cannot catch.
 
 See [`drm.md`](drm.md) for the full specification.
+
+---
+
+## API Endpoints
+
+All PSA v2 endpoints use JWT cookie auth (web UI). For external integrations use the Public API v1 and include `session_id` / `session_name`.
+
+### `POST /api/v2/psa/analyze`
+
+Classify a single AI response and, optionally, run IRS/RAG/DRM on the accompanying human turn.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `text` | string | yes | The AI response to classify |
+| `session_id` | string | one of these is required | Existing session to append the turn to |
+| `session_name` | string | one of these is required | Session name — creates if not exists |
+| `user_text` | string | no | Human turn text — triggers IRS / RAS / RAG / DRM pipeline if provided |
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `postures` | object | C0–C4 classifier scores |
+| `confidence_scores` | object | Confidence for each classifier |
+| `bhs` | float | Behavioral Health Score — composite posture health [0, 1] |
+| `alert` | string | `"green"` / `"yellow"` / `"orange"` / `"red"` / `"critical"` |
+| `irs` | object | IRS result — present if `user_text` was provided |
+| `ras` | object | RAS result — present if `user_text` was provided |
+| `rag` | object | RAG result — present if `user_text` was provided |
+| `drm` | object | DRM result — present if `user_text` was provided |
+
+### `GET /api/v2/psa/sessions`
+
+List all sessions with PSA v2 data for the authenticated user.
+
+**Response:** `{ "sessions": [...] }`
+
+### `GET /api/v2/psa/session/{session_id}`
+
+Retrieve full session metrics and per-turn posture, IRS, RAG, and DRM data.
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `session` | object | Session metadata |
+| `turns` | object[] | Per-turn posture profiles, IRS/RAS/RAG/DRM scores (if DRM was run) |
+
+### `POST /api/v2/psa/irs`
+
+Score a human turn text for input risk signals. Fully deterministic — no ML.
+
+**Request body:** `{ "text": string }`
+
+**Response:** full IRS output — see [`drm.md`](drm.md) for field definitions.
+
+### `POST /api/v2/psa/drm`
+
+Run the Dyadic Risk Module given pre-computed IRS, RAS, and PSA v2 results.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `irs` | object | yes | Output of `score_irs()` |
+| `ras` | object | yes | Output of `score_ras()` |
+| `rag` | object | yes | Output of `compute_rag()` |
+| `psa` | object | yes | PSA v2 result (keys: `bhs`, `alert`, `incongruence`, `c1`) |
+| `user_act_history` | float[] | yes | History of user ACT composites for the session |
+| `hr_history` | float[] | no | Rolling IRS composite history — used for BCS slope (R6-Spiraling) |
+| `sd_history` | float[] | no | Rolling sycophancy score history — used for BCS slope (R6-Spiraling) |
+
+**Response:** full DRM output — always includes `bcs_slope`. See [`drm.md`](drm.md) for field definitions.
+
+### Training Flags
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v2/psa/flag-for-training` | Flag a turn or session for model improvement (body: `{session_id, turn_id?}`) |
+| DELETE | `/api/v2/psa/flag-for-training/{session_id}` | Remove training flags for a session |
+
+### Admin / Internal
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v2/psa/internal/classify` | Classify a single sentence (admin) |
+| POST | `/api/v2/psa/internal/train` | Retrain classifier weights (admin) |
+| GET | `/api/v2/psa/internal/accuracy` | Per-posture accuracy metrics (admin) |
+| POST | `/api/v2/psa/admin/backfill-drm` | Backfill IRS/RAG/DRM for all existing unscored sessions (admin) |

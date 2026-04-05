@@ -107,3 +107,79 @@ For each analyzed agent interaction graph, PSA v3 produces:
 PSA v3 **requires** PSA v2. Every node in the agent interaction graph carries a full PSA v2 posture profile. PSA v3 analyzes the *relationships* between these profiles across the graph structure.
 
 PSA v2 characterizes individual agents. PSA v3 characterizes the system.
+
+---
+
+## API Endpoints
+
+All PSA v3 endpoints use JWT cookie auth (web UI).
+
+### Graph Submission & Retrieval
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v3/psa/graph` | Submit an agent interaction trace (nodes, roles, edges) → build DAG → run full analysis |
+| GET | `/api/v3/psa/graphs` | List all graphs for the authenticated user |
+| GET | `/api/v3/psa/graph/{graph_id}` | Full graph with all analysis results (SCS, CAHS, contagion metrics, action classifications, HMM state) |
+
+#### `POST /api/v3/psa/graph` — request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `nodes` | object[] | Agent invocations — each with `id`, `role`, `text` (response), and optional PSA v2 fields |
+| `edges` | object[] | Context handoffs — each with `from`, `to`, and optional `context_summary` |
+| `session_name` | string | Optional label for this graph |
+
+#### `GET /api/v3/psa/graph/{graph_id}` — response includes
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `graph` | object | DAG structure with node posture profiles |
+| `scs` | float | Swiss Cheese Score — systemic alignment failure probability [0, 1] |
+| `cahs` | float | Cross-Agent Health Score [0, 1] |
+| `ppi_per_edge` | object[] | Posture Propagation Index per edge |
+| `wls` | float | Weakest Link Score on the critical path |
+| `cer` | float | Context Erosion Rate |
+| `agm` | float | Alignment Gap Metric |
+| `critical_path` | string[] | Node IDs on the highest-risk path |
+| `hmm_state` | object | Current HMM state distribution |
+
+### Critical Path & Agent Profiles
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v3/psa/graph/{graph_id}/critical-path` | Highest-risk path through the agent graph |
+| GET | `/api/v3/psa/agent/{agent_id}/profile` | Aggregate posture profile for a single agent across all graphs |
+
+### Action-Risk Classification (C5)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v3/psa/classify-action` | Classify a single tool call on the A0–A9 risk taxonomy |
+| GET | `/api/v3/psa/graph/{graph_id}/actions` | All C5 action classifications for a graph |
+| GET | `/api/v3/psa/graph/{graph_id}/pai` | Posture-Action Incongruence (PAI) summary for a graph |
+
+#### `POST /api/v3/psa/classify-action` — request body
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action_name` | string | Tool or function name being called |
+| `action_args` | object | Arguments passed to the action |
+| `agent_posture` | object | Current PSA v2 posture profile of the calling agent |
+
+**Response:** `{ "risk_level": "A0"–"A9", "pai_score": float, "explanation": string }`
+
+### Temporal Prediction (HMM)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v3/psa/graph/{graph_id}/predict` | Predict future HMM states from current graph state |
+| GET | `/api/v3/psa/graph/{graph_id}/warning` | Current early warning status (threshold breach indicator) |
+| GET | `/api/v3/psa/hmm/parameters` | Current HMM parameters and model version |
+| POST | `/api/v3/psa/hmm/retrain` | Retrain the HMM from accumulated graph data (admin) |
+
+### Admin / Demo
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v3/psa/demo/generate` | Generate synthetic demo graphs for testing (admin) |

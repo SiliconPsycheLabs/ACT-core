@@ -77,3 +77,139 @@ For each analyzed turn, ACT produces:
 | **Alert level** | GREEN / YELLOW / RED |
 
 These outputs are passed to SIGTRACK for storage and (optionally) to PSA v2 for posture classification. See [`bcs-slope.md`](../concepts/bcs-slope.md) for the full BCS Slope specification.
+
+---
+
+## API Endpoints
+
+### Authentication
+
+Two auth methods:
+
+| Method | Usage |
+|--------|-------|
+| **JWT cookie** | Set automatically on login — used by the web dashboard |
+| **API key** | `Authorization: Bearer act_xxxxx` header — used for external integrations |
+
+API keys are created from the Settings page or via `POST /api/keys`.
+
+---
+
+### Public API v1 (API key auth)
+
+For external integrations. Authenticate with `Authorization: Bearer act_xxxxx`.
+
+#### `POST /v1/analyze`
+
+Analyze a single text and return the full ACT metric vector.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `text` | string | yes | The model response to analyze |
+| `session_id` | string | no | Existing session ID to append the turn to |
+| `session_name` | string | no | Session name — creates a new session if it does not exist |
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `turn_number` | integer | Turn index within the session |
+| `metrics` | object | Raw values for all 24 ACT metrics |
+| `z_scores` | object | Normalized deviation from baseline for each metric |
+| `composite_score` | float | ACT composite — single scalar summarizing behavioral deviation |
+| `sci` | float | Signal Consensus Index — cross-metric agreement measure |
+| `alert` | string | `"GREEN"` / `"YELLOW"` / `"RED"` |
+| `entry_hash` | string | SHA-256 hash of this turn in the forensic ledger |
+| `session_id` | string | Session the turn was stored in (present if session tracking was used) |
+
+#### `POST /v1/analyze/batch`
+
+Analyze multiple texts in a single request.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `texts` | string[] | yes | Array of texts to analyze (max 100) |
+| `session_id` | string | no | Existing session ID |
+| `session_name` | string | no | Session name — creates if not exists |
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | object[] | Per-item result, same fields as `/v1/analyze` |
+| `session_id` | string | Session used (present if session tracking was used) |
+
+#### `GET /v1/sessions`
+
+List all sessions belonging to the authenticated user.
+
+**Response:** `{ "sessions": [...] }` — array of session summary objects.
+
+#### `GET /v1/sessions/{session_id}`
+
+Retrieve a session with its full turn history.
+
+**Response:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `session` | object | Session metadata |
+| `turns` | object[] | Ordered list of turns with metrics, z-scores, and alert per turn |
+
+---
+
+### Dashboard API (JWT cookie auth)
+
+Used by the web UI. Requires an active authenticated session.
+
+| Method | Endpoint | Body | Returns |
+|--------|----------|------|---------|
+| POST | `/api/analyze` | `{text, session_id?, prompt_text?}` | `{metrics, z_scores, act_composite, sci, alert}` |
+| GET | `/api/baseline` | — | `{status, n_samples, name}` |
+| GET | `/api/sessions` | — | `{sessions[]}` |
+| POST | `/api/sessions` | `{name}` | `{session_id}` |
+| GET | `/api/sessions/{id}` | — | `{session, turns[], total_turns, page}` |
+| DELETE | `/api/sessions/{id}` | — | `{ok}` |
+| POST | `/api/batch-analyze` | multipart: `file`, `session_name?`, `text_column?`, `prompt_column?` | SSE stream of per-row results |
+
+### Insights & Streaming
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/insights/state` | Aggregated state matrix, regime distribution, session heat |
+| GET | `/api/insights/activity` | Activity heatmap (day × hour, last 90 days) |
+| GET | `/api/insights/trends` | Metric trends from last N analyses |
+| GET | `/api/stream/events` | SSE endpoint for real-time analysis event notifications |
+
+### API Key Management
+
+| Method | Endpoint | Body | Returns |
+|--------|----------|------|---------|
+| POST | `/api/keys` | `{name?}` | `{id, key, prefix, name}` — key shown only once |
+| GET | `/api/keys` | — | `{keys[]}` |
+| DELETE | `/api/keys/{id}` | — | `{ok}` |
+
+---
+
+## Rate Limits by Plan
+
+| Plan | Analyses / Month | Sessions | API Access |
+|------|-----------------|----------|------------|
+| Free | 50 | 5 | No |
+| Pro | 5,000 | Unlimited | Yes |
+| Enterprise | Unlimited | Unlimited | Yes |
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| 401 | Unauthorized — missing or invalid credentials |
+| 403 | Plan restriction — endpoint not available on current plan |
+| 404 | Resource not found |
+| 422 | Invalid request body |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
