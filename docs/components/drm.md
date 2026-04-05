@@ -287,6 +287,48 @@ PSA v2 tells you what the *model* is doing. DRM tells you whether the *interacti
 
 ---
 
+## API Endpoints
+
+DRM-specific endpoints are part of the PSA v2 API surface. All require JWT cookie auth.
+
+### `POST /api/v2/psa/irs`
+
+Score a human turn text for crisis signals. Fully deterministic.
+
+**Request body:** `{ "text": string }`
+
+**Response:** full IRS output dict (see IRS function signature above).
+
+### `POST /api/v2/psa/drm`
+
+Run the full DRM pipeline given pre-computed component results.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `irs` | object | yes | Output of `score_irs()` |
+| `ras` | object | yes | Output of `score_ras()` |
+| `rag` | object | yes | Output of `compute_rag()` |
+| `psa` | object | yes | PSA v2 result — keys: `bhs`, `alert`, `incongruence`, `c1` |
+| `user_act_history` | float[] | yes | History of user ACT composites (append current turn's value before calling) |
+| `hr_history` | float[] | no | Rolling IRS composite history — used for **R6-Spiraling** BCS slope detection |
+| `sd_history` | float[] | no | Rolling sycophancy score history — used for **R6-Spiraling** BCS slope detection |
+
+**Response:** full DRM output dict (see `run_drm()` signature above). The response **always includes `bcs_slope`** regardless of whether `hr_history` / `sd_history` were provided.
+
+> **R6-Spiraling** is DRM rule 6. It detects rising user dogmatism combined with bot sycophancy by computing the BCS slope over `hr_history` and `sd_history`. When both slopes are diverging, the rule fires at **ORANGE** alert level. Providing `hr_history` and `sd_history` enables this rule; without them, R6 is inactive and `bcs_slope` is `"insufficient_data"`.
+
+### `POST /api/v2/psa/admin/backfill-drm`
+
+Backfill IRS/RAG/DRM for all existing sessions that have not yet been scored. Admin role required.
+
+**Response:** `{ "ok": true, "sessions_processed": int }`
+
+For the full PSA v2 endpoint listing (including `/api/v2/psa/analyze`, flag-for-training, and internal admin endpoints) see [`psa-v2.md`](psa-v2.md).
+
+---
+
 ## DB Schema (migration 012)
 
 DRM results are persisted on the `psa_postures` and `psa_sessions` tables.
