@@ -1,3 +1,14 @@
+# ⚠️ ARCHIVAL NOTICE / AVVISO DI ARCHIVIAZIONE
+
+> [!IMPORTANT]
+> **This repository is scheduled to be ARCHIVED on April 13, 2026.**  
+> After this date, the project will be set to **read-only** mode.
+
+### 🚀 Moving Forward
+Active development has transitioned to our new official repository. Please migrate your stars, forks, and contributions to the link below to stay updated with the latest features and fixes:
+
+👉 **[SiliconPsycheLabs/PSA](https://github.com/SiliconPsycheLabs/PSA)**
+
 # ACT-Core — Conceptual Specification
 
 This repository contains the **conceptual specification** of the ACT platform: what it measures, why, and how its components relate. It is technology-agnostic and implementation-free — no code, no formulas, no stack details.
